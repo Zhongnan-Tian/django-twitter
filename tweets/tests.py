@@ -8,8 +8,8 @@ from utils.time_helpers import utc_now
 class TweetTests(TestCase):
 
     def test_hours_to_now(self):
-        linghu = User.objects.create_user(username='test_user_1')
-        tweet = Tweet.objects.create(user=linghu, content='Hello World!')
+        test_user = User.objects.create_user(username='test_user_1')
+        tweet = Tweet.objects.create(user=test_user, content='Hello World!')
         tweet.created_at = utc_now() - timedelta(hours=10)
         tweet.save()
         self.assertEqual(tweet.hours_to_now, 10)
