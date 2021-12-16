@@ -20,11 +20,6 @@ class AccountApiTests(TestCase):
             password='correct password',
         )
 
-    def createUser(self, username, email, password):
-        # cannot use User.objects.create()
-        # because password needs to be hashed, username and email need some normalization
-        return User.objects.create_user(username, email, password)
-
     def test_login(self):
         # every test function must start with test_
         # should not use get method
