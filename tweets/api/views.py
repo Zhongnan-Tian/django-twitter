@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from tweets.api.serializers import TweetSerializer, TweetCreateSerializer
 from tweets.models import Tweet
+from newsfeeds.services import NewsFeedService
 
 
 class TweetViewSet(viewsets.GenericViewSet,
@@ -20,6 +21,7 @@ class TweetViewSet(viewsets.GenericViewSet,
         return [IsAuthenticated()]
 
     def list(self, request, *args, **kwargs):
+        # /api/tweets/?user_id=1
         """
         overwrite list method，No need to list all tweets，Use user_id as the query filter.
         """
@@ -55,4 +57,5 @@ class TweetViewSet(viewsets.GenericViewSet,
                 'errors': serializer.errors,
             }, status=400)
         tweet = serializer.save()
+        NewsFeedService.fanout_to_followers(tweet)
         return Response(TweetSerializer(tweet).data, status=201)
