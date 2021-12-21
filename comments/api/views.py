@@ -38,7 +38,11 @@ class CommentViewSet(viewsets.GenericViewSet):
         comments = self.filter_queryset(queryset)\
             .prefetch_related('user')\
             .order_by('created_at')
-        serializer = CommentSerializer(comments, many=True)
+        serializer = CommentSerializer(
+            comments,
+            context={'request': request},
+            many=True,
+        )
         return Response(
             {'comments': serializer.data},
             status=status.HTTP_200_OK,
@@ -62,7 +66,7 @@ class CommentViewSet(viewsets.GenericViewSet):
         # save method will trigger create method in serializer.
         comment = serializer.save()
         return Response(
-            CommentSerializer(comment).data,
+            CommentSerializer(comment, context={'request': request}).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -82,7 +86,7 @@ class CommentViewSet(viewsets.GenericViewSet):
         # Whether to trigger create or update is determined by parameter instance.
         comment = serializer.save()
         return Response(
-            CommentSerializer(comment).data,
+            CommentSerializer(comment, context={'request': request}).data,
             status=status.HTTP_200_OK,
         )
 
