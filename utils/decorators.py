@@ -3,7 +3,7 @@ from rest_framework import status
 from functools import wraps
 
 
-def required_params(request_attr='query_params', params=None):
+def required_params(method='GET', params=None):
     """
     When we use @required_params(params=['some_param']),
     this required_params function should return a decorator function，
@@ -19,7 +19,10 @@ def required_params(request_attr='query_params', params=None):
         """
         @wraps(view_func)
         def _wrapped_view(instance, request, *args, **kwargs):
-            data = getattr(request, request_attr)
+            if method.lower() == 'get':
+                data = request.query_params
+            else:
+                data = request.data
             missing_params = [
                 param
                 for param in params
