@@ -18,3 +18,18 @@ class NotificationSerializer(serializers.ModelSerializer):
             'timestamp',
             'unread',
         )
+
+class NotificationSerializerForUpdate(serializers.ModelSerializer):
+    # BooleanField is compatible with true, false, "true", "false", "True", "1", "0".
+    # Transformed to python boolean True / False
+    unread = serializers.BooleanField()
+
+    class Meta:
+        model = Notification
+        # can update unread only
+        fields = ('unread',)
+
+    def update(self, instance, validated_data):
+        instance.unread = validated_data['unread']
+        instance.save()
+        return instance
