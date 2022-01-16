@@ -28,6 +28,7 @@ from inbox.api.views import NotificationViewSet
 router = routers.DefaultRouter()
 router.register(r'api/users', views.UserViewSet)
 router.register(r'api/accounts', views.AccountViewSet, basename='accounts')
+router.register(r'api/profiles', views.UserProfileViewSet, basename='profiles')
 router.register(r'api/tweets', TweetViewSet, basename='tweets')
 router.register(r'api/friendships', FriendshipViewSet, basename='friendships')
 router.register(r'api/newsfeeds', NewsFeedViewSet, basename='newsfeeds')
