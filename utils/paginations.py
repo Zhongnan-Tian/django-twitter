@@ -24,12 +24,12 @@ class EndlessPagination(BasePagination):
             return queryset.order_by('-created_at')
 
         if 'created_at__lt' in request.query_params:
-            # created_at__lt is used for loading the next page.
+            # created_at__lt is used for loading next page.
             # Find page_size + 1 records whose created_at < created_at__lt, order by reversed created_at.
             # For example, records are [...10, 9, 8, 7 .. 1]. Current page ends with 10.
             # If created_at__lt=10, page_size = 2
             # then we should return [9, 8, 7].
-            # We return one more record in order to check whether there is next page
+            # We load one more record in order to check whether there is next page
             # to avoid empty loading.
             created_at__lt = request.query_params['created_at__lt']
             queryset = queryset.filter(created_at__lt=created_at__lt)
