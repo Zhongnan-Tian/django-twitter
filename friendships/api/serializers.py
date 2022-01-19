@@ -6,6 +6,21 @@ from django.contrib.auth.models import User
 from friendships.services import FriendshipService
 
 
+class FollowingUserIdSetMixin:
+
+    @property
+    def following_user_id_set(self: serializers.ModelSerializer):
+        if self.context['request'].user.is_anonymous:
+            return {}
+        if hasattr(self, '_cached_following_user_id_set'):
+            return self._cached_following_user_id_set
+        user_id_set = FriendshipService.get_following_user_id_set(
+            self.context['request'].user.id,
+        )
+        setattr(self, '_cached_following_user_id_set', user_id_set)
+        return user_id_set
+
+
 class FriendshipSerializerForCreate(serializers.ModelSerializer):
     from_user_id = serializers.IntegerField()
     to_user_id = serializers.IntegerField()
@@ -37,7 +52,7 @@ class FriendshipSerializerForCreate(serializers.ModelSerializer):
 # set source=xxx to visit model instance's xxx method
 # namely model_instance.xxx
 # https://www.django-rest-framework.org/api-guide/serializers/#specifying-fields-explicitly
-class FollowerSerializer(serializers.ModelSerializer):
+class FollowerSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
     user = UserSerializerForFriendship(source='from_user')
     created_at = serializers.DateTimeField()
     has_followed = serializers.SerializerMethodField()
@@ -49,15 +64,10 @@ class FollowerSerializer(serializers.ModelSerializer):
     # user1 is viewing the list of user2's followers user3/user4/user5...,
     # check user1 has followed user3/user4/user5
     def get_has_followed(self, obj):
-        if self.context['request'].user.is_anonymous:
-            return False
-        # <TODO> SQL query is executed for every object，slow!
-        # This issue will be addressed later.
-        return FriendshipService.has_followed(self.context['request'].user,
-                                              obj.from_user)
+        return obj.from_user_id in self.following_user_id_set
 
 
-class FollowingSerializer(serializers.ModelSerializer):
+class FollowingSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
     user = UserSerializerForFriendship(source='to_user')
     created_at = serializers.DateTimeField()
     has_followed = serializers.SerializerMethodField()
@@ -69,9 +79,4 @@ class FollowingSerializer(serializers.ModelSerializer):
     # user1 is viewing the list of user2's followings user3/user4/user5...,
     # check user1 has followed user3/user4/user5
     def get_has_followed(self, obj):
-        if self.context['request'].user.is_anonymous:
-            return False
-        # <TODO> SQL query is executed for every object，slow!
-        # This issue will be addressed later.
-        return FriendshipService.has_followed(self.context['request'].user,
-                                              obj.to_user)
+        return obj.to_user_id in self.following_user_id_set
