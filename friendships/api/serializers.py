@@ -53,7 +53,7 @@ class FriendshipSerializerForCreate(serializers.ModelSerializer):
 # namely model_instance.xxx
 # https://www.django-rest-framework.org/api-guide/serializers/#specifying-fields-explicitly
 class FollowerSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
-    user = UserSerializerForFriendship(source='from_user')
+    user = UserSerializerForFriendship(source='cached_from_user')
     created_at = serializers.DateTimeField()
     has_followed = serializers.SerializerMethodField()
 
@@ -68,7 +68,7 @@ class FollowerSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
 
 
 class FollowingSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
-    user = UserSerializerForFriendship(source='to_user')
+    user = UserSerializerForFriendship(source='cached_to_user')
     created_at = serializers.DateTimeField()
     has_followed = serializers.SerializerMethodField()
 
