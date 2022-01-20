@@ -1,5 +1,6 @@
 from rest_framework.pagination import BasePagination
 from rest_framework.response import Response
+from dateutil import parser
 
 
 class EndlessPagination(BasePagination):
@@ -12,7 +13,43 @@ class EndlessPagination(BasePagination):
     def to_html(self):
         pass
 
+    # We assume reverse_ordered_list has all the potential records
+    # i.e. cache all valid tweets.
+    # TODO: some tweets are in cache, some tweets are in db, we need to refactor the function.
+    # TODO: When tweet is deleted, the deleted tweet can be cached somewhere else.
+    # reverse_ordered_list could contain deleted ones,
+    # skip the deleted ones by checking the cache, until we find enough tweets for one page.
+    def paginate_ordered_list(self, reverse_ordered_list, request):
+        if 'created_at__gt' in request.query_params:
+            # parse to timestamp in ISO
+            created_at__gt = parser.isoparse(
+                request.query_params['created_at__gt'])
+            objects = []
+            for obj in reverse_ordered_list:
+                if obj.created_at > created_at__gt:
+                    objects.append(obj)
+                else:
+                    break
+            self.has_next_page = False
+            return objects
+
+        index = 0
+        if 'created_at__lt' in request.query_params:
+            created_at__lt = parser.isoparse(
+                request.query_params['created_at__lt'])
+            for index, obj in enumerate(reverse_ordered_list):
+                if obj.created_at < created_at__lt:
+                    break
+            else:
+                # not found any objects which meet the criteria
+                reverse_ordered_list = []
+        self.has_next_page = len(reverse_ordered_list) > index + self.page_size
+        return reverse_ordered_list[index: index + self.page_size]
+
     def paginate_queryset(self, queryset, request, view=None):
+        if type(queryset) == list:
+            return self.paginate_ordered_list(queryset, request)
+
         if 'created_at__gt' in request.query_params:
             # created_at__gt is used for loading latest records.
             # We just load all the latest records, instead of doing pagination.
