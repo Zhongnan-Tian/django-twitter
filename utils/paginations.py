@@ -1,10 +1,11 @@
 from rest_framework.pagination import BasePagination
 from rest_framework.response import Response
 from dateutil import parser
+from django.conf import settings
 
 
 class EndlessPagination(BasePagination):
-    page_size = 20
+    page_size = 20 if not settings.TESTING else 10
 
     def __init__(self):
         super(EndlessPagination, self).__init__()
@@ -13,12 +14,9 @@ class EndlessPagination(BasePagination):
     def to_html(self):
         pass
 
-    # We assume reverse_ordered_list has all the potential records
-    # i.e. cache all valid tweets.
-    # TODO: some tweets are in cache, some tweets are in db, we need to refactor the function.
     # TODO: When tweet is deleted, the deleted tweet can be cached somewhere else.
     # reverse_ordered_list could contain deleted ones,
-    # skip the deleted ones by checking the cache, until we find enough tweets for one page.
+    # skip the deleted ones by checking the cache.
     def paginate_ordered_list(self, reverse_ordered_list, request):
         if 'created_at__gt' in request.query_params:
             # parse to timestamp in ISO
@@ -47,9 +45,6 @@ class EndlessPagination(BasePagination):
         return reverse_ordered_list[index: index + self.page_size]
 
     def paginate_queryset(self, queryset, request, view=None):
-        if type(queryset) == list:
-            return self.paginate_ordered_list(queryset, request)
-
         if 'created_at__gt' in request.query_params:
             # created_at__gt is used for loading latest records.
             # We just load all the latest records, instead of doing pagination.
@@ -74,6 +69,29 @@ class EndlessPagination(BasePagination):
         queryset = queryset.order_by('-created_at')[:self.page_size + 1]
         self.has_next_page = len(queryset) > self.page_size
         return queryset[:self.page_size]
+
+    def paginate_cached_list(self, cached_list, request):
+        paginated_list = self.paginate_ordered_list(cached_list, request)
+
+        # when loading the latest data，paginated_list contains all the data,
+        # just return
+        if 'created_at__gt' in request.query_params:
+            return paginated_list
+
+        # when loading next page, has_next_page is true.
+        # This means cached_list has enough data, just return.
+        if self.has_next_page:
+            return paginated_list
+
+        # when loading next page, has_next_page is false,
+        # and cached_list length is smaller than the max limit.
+        # This means cached_list has all the data, just return.
+        if len(cached_list) < settings.REDIS_LIST_LENGTH_LIMIT:
+            return paginated_list
+
+        # other scenarios means some data exists in db but not in cache.
+        # need to query db.
+        return None
 
     def get_paginated_response(self, data):
         return Response({
