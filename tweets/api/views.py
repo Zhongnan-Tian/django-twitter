@@ -39,19 +39,21 @@ class TweetViewSet(viewsets.GenericViewSet):
         """
         overwrite list method，No need to list all tweets，Use user_id as the query filter.
         """
+        user_id = request.query_params['user_id']
+        cached_tweets = TweetService.get_cached_tweets(user_id)
+        page = self.paginator.paginate_cached_list(cached_tweets, request)
 
-        # select * from twitter_tweets
-        # where user_id = xxx
-        # order by created_at desc
-        # This SQL query needs the composite index, user and created_at.
-        # Not enough to have user index only.
-        tweets = TweetService.get_cached_tweets(
-            user_id=request.query_params['user_id'])
-
-        tweets = self.paginate_queryset(tweets)
+        if page is None:
+            # select * from twitter_tweets
+            # where user_id = xxx
+            # order by created_at desc
+            # This SQL query needs the composite index, user and created_at.
+            # Not enough to have user index only.
+            queryset = Tweet.objects.filter(user_id=user_id).order_by('-created_at')
+            page = self.paginate_queryset(queryset)
 
         serializer = TweetSerializer(
-            tweets,
+            page,
             context={'request': request},
             many=True,
         )
