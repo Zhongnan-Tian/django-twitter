@@ -15,6 +15,12 @@ class Tweet(models.Model):
     content = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Newly added fields must set null=True. Otherwise, default = 0 would iterate
+    # the whole table to set value 0.
+    # This results in slow migration, locking the whole table, and failing in creating new tweets.
+    likes_count = models.IntegerField(default=0, null=True)
+    comments_count = models.IntegerField(default=0, null=True)
+
     class Meta:
         index_together = (('user', 'created_at'),)
         ordering = ('user', '-created_at')
