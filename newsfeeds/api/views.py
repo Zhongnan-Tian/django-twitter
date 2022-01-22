@@ -20,7 +20,6 @@ class NewsFeedViewSet(viewsets.GenericViewSet):
         page = self.paginator.paginate_cached_list(cached_newsfeeds, request)
         # the requested data is not in cache, need query db.
         if page is None:
-            # queryset = NewsFeed.objects.filter(user=request.user)
             page = self.paginate_queryset(self.get_queryset())
         serializer = NewsFeedSerializer(
             page,
