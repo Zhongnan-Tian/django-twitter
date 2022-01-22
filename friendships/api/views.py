@@ -10,7 +10,8 @@ from friendships.api.serializers import (
 )
 from django.contrib.auth.models import User
 from friendships.api.paginations import FriendshipPagination
-from friendships.services import FriendshipService
+from django.utils.decorators import method_decorator
+from ratelimit.decorators import ratelimit
 
 
 class FriendshipViewSet(viewsets.GenericViewSet):
@@ -26,6 +27,8 @@ class FriendshipViewSet(viewsets.GenericViewSet):
     serializer_class = FriendshipSerializerForCreate
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
+    @method_decorator(
+        ratelimit(key='user_or_ip', rate='3/s', method='GET', block=True))
     def followers(self, request, pk):
         # /api/friendships/1/followers get user 1's followers
         friendships = Friendship.objects.filter(to_user_id=pk)
@@ -35,6 +38,8 @@ class FriendshipViewSet(viewsets.GenericViewSet):
         return self.get_paginated_response(serializer.data)
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
+    @method_decorator(
+        ratelimit(key='user_or_ip', rate='3/s', method='GET', block=True))
     def followings(self, request, pk):
         # /api/friendships/1/followings get user1's followings
         friendships = Friendship.objects.filter(from_user_id=pk)
@@ -44,6 +49,8 @@ class FriendshipViewSet(viewsets.GenericViewSet):
         return self.get_paginated_response(serializer.data)
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
+    @method_decorator(
+        ratelimit(key='user', rate='10/s', method='POST', block=True))
     def follow(self, request, pk):
         # /api/friendships/1/follow  follow user 1
         # If the follow action happens several times (follow button is clicked several times)
@@ -72,6 +79,8 @@ class FriendshipViewSet(viewsets.GenericViewSet):
         )
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
+    @method_decorator(
+        ratelimit(key='user', rate='10/s', method='POST', block=True))
     def unfollow(self, request, pk):
         # /api/friendships/1/unfollow  unfollow user 1
         # raise 404 if no user with id=pk
