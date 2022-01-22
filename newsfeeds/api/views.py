@@ -10,13 +10,17 @@ class NewsFeedViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = EndlessPagination
 
+    def get_queryset(self):
+        # can only see the newsfeed of current logged in user's.
+        # self.request.user.newsfeed_set.all() works too, but not very straightforward
+        return NewsFeed.objects.filter(user=self.request.user)
+
     def list(self, request):
         cached_newsfeeds = NewsFeedService.get_cached_newsfeeds(request.user.id)
         page = self.paginator.paginate_cached_list(cached_newsfeeds, request)
         # the requested data is not in cache, need query db.
         if page is None:
-            queryset = NewsFeed.objects.filter(user=request.user)
-            page = self.paginate_queryset(queryset)
+            page = self.paginate_queryset(self.get_queryset())
         serializer = NewsFeedSerializer(
             page,
             context={'request': request},
