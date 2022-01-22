@@ -14,7 +14,7 @@ class RedisHelper:
         # Objects beyond the limit need to retrieve from db.
         # Usually the limit is large, for example 1000.
         # The frequency to load objects beyond 1000 is low，
-        for obj in objects[:settings.REDIS_LIST_LENGTH_LIMIT]:
+        for obj in objects:
             serialized_data = DjangoModelSerializer.serialize(obj)
             serialized_list.append(serialized_data)
 
@@ -24,6 +24,7 @@ class RedisHelper:
 
     @classmethod
     def load_objects(cls, key, queryset):
+        queryset = queryset[:settings.REDIS_LIST_LENGTH_LIMIT]
         conn = RedisClient.get_connection()
 
         if conn.exists(key):
@@ -41,6 +42,7 @@ class RedisHelper:
 
     @classmethod
     def push_object(cls, key, obj, queryset):
+        queryset = queryset[:settings.REDIS_LIST_LENGTH_LIMIT]
         conn = RedisClient.get_connection()
         if not conn.exists(key):
             # If key doesn't exist, load from db,
