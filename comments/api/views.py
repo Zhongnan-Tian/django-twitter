@@ -37,7 +37,6 @@ class CommentViewSet(viewsets.GenericViewSet):
     @method_decorator(
         ratelimit(key='user', rate='10/s', method='GET', block=True))
     def list(self, request, *args, **kwargs):
-        print('=== comments list ===');
         queryset = self.get_queryset()
         # use prefetch_related to avoid users being loaded multiple times
         # along with every comment
