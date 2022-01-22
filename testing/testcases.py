@@ -9,9 +9,32 @@ from newsfeeds.models import NewsFeed
 from django.core.cache import caches
 from utils.redis_client import RedisClient
 from friendships.models import Friendship
+from django_hbase.models import HBaseModel
 
 
 class TestCase(DjangoTestCase):
+    hbase_tables_created = False
+
+    def setUp(self):
+        print('=== TestCase setUp ===');
+        self.clear_cache()
+        try:
+            self.hbase_tables_created = True
+            print('=== creating tables ===');
+            for hbase_model_class in HBaseModel.__subclasses__():
+                print('=== for loop ===');
+                hbase_model_class.create_table()
+                print('=== created table ===');
+        except Exception:
+            print('=== Test Case setUp exception ===');
+            self.tearDown()
+            raise
+
+    def tearDown(self):
+        if not self.hbase_tables_created:
+            return
+        for hbase_model_class in HBaseModel.__subclasses__():
+            hbase_model_class.drop_table()
 
     def clear_cache(self):
         RedisClient.clear()
