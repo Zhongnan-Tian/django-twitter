@@ -74,7 +74,7 @@ class NewsFeedTaskTests(TestCase):
         self.assertEqual(len(cached_list), 1)
 
         for i in range(2):
-            user = self.create_user('user{}'.format(i))
+            user = self.create_user('someone{}'.format(i))
             self.create_friendship(user, self.user1)
         tweet = self.create_tweet(self.user1, 'tweet 2')
         if GateKeeper.is_switch_on('switch_newsfeed_to_hbase'):

@@ -175,7 +175,7 @@ class NewsFeedApiTests(TestCase):
     def test_redis_list_limit(self):
         list_limit = settings.REDIS_LIST_LENGTH_LIMIT
         page_size = 20
-        users = [self.create_user('user{}'.format(i)) for i in range(5)]
+        users = [self.create_user('someone{}'.format(i)) for i in range(5)]
         newsfeeds = []
         for i in range(list_limit + page_size):
             tweet = self.create_tweet(user=users[i % 5], content='feed{}'.format(i))
