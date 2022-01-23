@@ -1,14 +1,7 @@
 from django_hbase.client import HBaseClient
 from django.conf import settings
 from django_hbase.models import HBaseField, IntegerField, TimestampField
-
-
-class BadRowKeyError(Exception):
-    pass
-
-
-class EmptyColumnError(Exception):
-    pass
+from django_hbase.models.exceptions import BadRowKeyError, EmptyColumnError
 
 
 class HBaseModel:
@@ -133,14 +126,17 @@ class HBaseModel:
             row_data[column_key] = cls.serialize_field(field, column_value)
         return row_data
 
-    def save(self):
+    def save(self, batch=None):
         row_data = self.serialize_row_data(self.__dict__)
         # If row_data is empty，there is no column key values, hbase won't save
         # the row_key, so raise exception
         if len(row_data) == 0:
             raise EmptyColumnError()
-        table = self.get_table()
-        table.put(self.row_key, row_data)
+        if batch:
+            batch.put(self.row_key, row_data)
+        else:
+            table = self.get_table()
+            table.put(self.row_key, row_data)
 
     @classmethod
     def get(cls, **kwargs):
@@ -150,10 +146,20 @@ class HBaseModel:
         return cls.init_from_row(row_key, row)
 
     @classmethod
-    def create(cls, **kwargs):
+    def create(cls, batch=None, **kwargs):
         instance = cls(**kwargs)
-        instance.save()
+        instance.save(batch=batch)
         return instance
+
+    @classmethod
+    def batch_create(cls, batch_data):
+        table = cls.get_table()
+        batch = table.batch()
+        results = []
+        for data in batch_data:
+            results.append(cls.create(batch=batch, **data))
+        batch.send()
+        return results
 
     @classmethod
     def get_table_name(cls):
