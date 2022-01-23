@@ -26,6 +26,10 @@ class GateKeeper(object):
     def is_switch_on(cls, gk_name):
         return cls.get(gk_name)['percent'] == 100
 
+    @classmethod
+    def turn_on(cls, gk_name):
+        cls.set_kv(gk_name, 'percent', 100)
+
     # grey release
     # users who got the new feature still have the new feature when the percent is increased.
     @classmethod
