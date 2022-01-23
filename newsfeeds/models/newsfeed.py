@@ -7,7 +7,7 @@ from newsfeeds.listeners import push_newsfeed_to_cache
 
 
 class NewsFeed(models.Model):
-    # Not this user means who can view the tweet
+    # Note this user means who can view the tweet
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     tweet = models.ForeignKey(Tweet, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

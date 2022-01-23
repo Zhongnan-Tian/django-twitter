@@ -2,7 +2,6 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from friendships.models import Friendship
 from friendships.api.serializers import (
     FollowingSerializer,
     FollowerSerializer,
@@ -11,11 +10,10 @@ from friendships.api.serializers import (
 from django.contrib.auth.models import User
 from django.utils.decorators import method_decorator
 from ratelimit.decorators import ratelimit
-from friendships.hbase_models import HBaseFollowing, HBaseFollower
 from gatekeeper.models import GateKeeper
 from utils.paginations import EndlessPagination
 from friendships.services import FriendshipService
-
+from friendships.models import HBaseFollowing, HBaseFollower, Friendship
 
 class FriendshipViewSet(viewsets.GenericViewSet):
     # POST /api/friendship/1/follow will make the logged in user follow user_id=1,
