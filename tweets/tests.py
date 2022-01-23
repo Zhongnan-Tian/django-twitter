@@ -9,7 +9,7 @@ from utils.redis_client import RedisClient
 
 class TweetTests(TestCase):
     def setUp(self):
-        self.clear_cache()
+        super(TweetTests, self).setUp()
         self.user1 = self.create_user('user1')
         self.tweet = self.create_tweet(self.user1, content='hi')
 
@@ -42,7 +42,7 @@ class TweetTests(TestCase):
 class TweetServiceTests(TestCase):
 
     def setUp(self):
-        self.clear_cache()
+        super(TweetServiceTests, self).setUp()
         self.user1 = self.create_user('user1')
 
     def test_get_user_tweets(self):

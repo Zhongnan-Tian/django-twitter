@@ -9,9 +9,12 @@ from friendships.api.serializers import (
     FriendshipSerializerForCreate,
 )
 from django.contrib.auth.models import User
-from friendships.api.paginations import FriendshipPagination
 from django.utils.decorators import method_decorator
 from ratelimit.decorators import ratelimit
+from friendships.hbase_models import HBaseFollowing, HBaseFollower
+from gatekeeper.models import GateKeeper
+from utils.paginations import EndlessPagination
+from friendships.services import FriendshipService
 
 
 class FriendshipViewSet(viewsets.GenericViewSet):
@@ -22,7 +25,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
     # If we use Friendship.objects.all, error 404 Not Found.
     queryset = User.objects.all()
     # Usually different views require different pagination rules.
-    pagination_class = FriendshipPagination
+    pagination_class = EndlessPagination
 
     serializer_class = FriendshipSerializerForCreate
 
@@ -30,32 +33,45 @@ class FriendshipViewSet(viewsets.GenericViewSet):
     @method_decorator(
         ratelimit(key='user_or_ip', rate='3/s', method='GET', block=True))
     def followers(self, request, pk):
-        # /api/friendships/1/followers get user 1's followers
-        friendships = Friendship.objects.filter(to_user_id=pk)
-        page = self.paginate_queryset(friendships)
-        serializer = FollowerSerializer(page, many=True,
-                                    context={'request': request})
-        return self.get_paginated_response(serializer.data)
+        pk = int(pk)
+        paginator = self.paginator
+        if GateKeeper.is_switch_on('switch_friendship_to_hbase'):
+            page = paginator.paginate_hbase(HBaseFollower, (pk,), request)
+        else:
+            friendships = Friendship.objects.filter(to_user_id=pk).order_by(
+                '-created_at')
+            page = paginator.paginate_queryset(friendships)
+
+        serializer = FollowerSerializer(page, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
     @method_decorator(
         ratelimit(key='user_or_ip', rate='3/s', method='GET', block=True))
     def followings(self, request, pk):
-        # /api/friendships/1/followings get user1's followings
-        friendships = Friendship.objects.filter(from_user_id=pk)
-        page = self.paginate_queryset(friendships)
-        serializer = FollowingSerializer(page, many=True,
-                                         context={'request': request})
-        return self.get_paginated_response(serializer.data)
+        pk = int(pk)
+        paginator = self.paginator
+        if GateKeeper.is_switch_on('switch_friendship_to_hbase'):
+            page = paginator.paginate_hbase(HBaseFollowing, (pk,), request)
+        else:
+            friendships = Friendship.objects.filter(from_user_id=pk).order_by(
+                '-created_at')
+            page = paginator.paginate_queryset(friendships)
+
+        serializer = FollowingSerializer(page, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
     @method_decorator(
         ratelimit(key='user', rate='10/s', method='POST', block=True))
     def follow(self, request, pk):
         # /api/friendships/1/follow  follow user 1
+        # check if user with id=pk exists
+        to_follow_user = self.get_object();
+
         # If the follow action happens several times (follow button is clicked several times)
         # Be silent，No need to throw error.
-        if Friendship.objects.filter(from_user=request.user, to_user=pk).exists():
+        if FriendshipService.has_followed(request.user.id, to_follow_user.id):
             return Response({
                 'success': True,
                 'duplicate': True,
@@ -63,7 +79,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
 
         serializer = FriendshipSerializerForCreate(data={
             'from_user_id': request.user.id,
-            'to_user_id': pk,
+            'to_user_id': to_follow_user.id,
         })
 
         if not serializer.is_valid():
@@ -91,18 +107,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
                 'message': 'You cannot unfollow yourself',
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # https://docs.djangoproject.com/en/3.1/ref/models/querysets/#delete
-        # Queryset delete returns two values: how many records are deleted totally,
-        # how many records are deleted for every type.
-        # Multiple types of date can be deleted, this is because foreign key sets cascade deletion by default.
-        # For example, some attribute of A model is the foreign key of B model,
-        # on_delete=models.CASCADE,
-        # so when record B is getting deleted, record A will be deleted too。
-        # CASCADE is dangerous，Use on_delete=models.SET_NULL instead.
-        deleted, _ = Friendship.objects.filter(
-            from_user=request.user,
-            to_user=pk,
-        ).delete()
+        deleted = FriendshipService.unfollow(request.user.id, int(pk))
         return Response({'success': True, 'deleted': deleted})
 
     # just in order to make the URL display on home page
