@@ -11,6 +11,7 @@ from utils.redis_client import RedisClient
 from friendships.services import FriendshipService
 from django_hbase.models import HBaseModel
 from gatekeeper.models import GateKeeper
+from newsfeeds.services import NewsFeedService
 
 
 class TestCase(DjangoTestCase):
@@ -36,7 +37,8 @@ class TestCase(DjangoTestCase):
         RedisClient.clear()
         caches['testing'].clear()
         # toggle this if needed
-        # GateKeeper.set_kv('switch_friendship_to_hbase', 'percent', 100)
+        # GateKeeper.turn_on('switch_newsfeed_to_hbase')
+        # GateKeeper.turn_on('switch_friendship_to_hbase')
 
     @property
     def anonymous_client(self):
@@ -79,7 +81,12 @@ class TestCase(DjangoTestCase):
         return user, client
 
     def create_newsfeed(self, user, tweet):
-        return NewsFeed.objects.create(user=user, tweet=tweet)
+        if GateKeeper.is_switch_on('switch_newsfeed_to_hbase'):
+            created_at = tweet.timestamp
+        else:
+            created_at = tweet.created_at
+        return NewsFeedService.create(user_id=user.id, tweet_id=tweet.id,
+                                      created_at=created_at)
 
     def create_friendship(self, from_user, to_user):
         return FriendshipService.follow(from_user.id, to_user.id)
