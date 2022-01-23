@@ -34,30 +34,32 @@ class FriendshipViewSet(viewsets.GenericViewSet):
         ratelimit(key='user_or_ip', rate='3/s', method='GET', block=True))
     def followers(self, request, pk):
         pk = int(pk)
+        paginator = self.paginator
         if GateKeeper.is_switch_on('switch_friendship_to_hbase'):
-            page = self.paginator.paginate_hbase(HBaseFollower, (pk,), request)
+            page = paginator.paginate_hbase(HBaseFollower, (pk,), request)
         else:
             friendships = Friendship.objects.filter(to_user_id=pk).order_by(
                 '-created_at')
-            page = self.paginate_queryset(friendships)
+            page = paginator.paginate_queryset(friendships)
 
         serializer = FollowerSerializer(page, many=True, context={'request': request})
-        return self.paginator.get_paginated_response(serializer.data)
+        return paginator.get_paginated_response(serializer.data)
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
     @method_decorator(
         ratelimit(key='user_or_ip', rate='3/s', method='GET', block=True))
     def followings(self, request, pk):
         pk = int(pk)
+        paginator = self.paginator
         if GateKeeper.is_switch_on('switch_friendship_to_hbase'):
-            page = self.paginator.paginate_hbase(HBaseFollowing, (pk,), request)
+            page = paginator.paginate_hbase(HBaseFollowing, (pk,), request)
         else:
             friendships = Friendship.objects.filter(from_user_id=pk).order_by(
                 '-created_at')
-            page = self.paginate_queryset(friendships)
+            page = paginator.paginate_queryset(friendships)
 
         serializer = FollowingSerializer(page, many=True, context={'request': request})
-        return self.paginator.get_paginated_response(serializer.data)
+        return paginator.get_paginated_response(serializer.data)
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
     @method_decorator(
