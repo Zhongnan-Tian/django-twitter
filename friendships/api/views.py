@@ -65,7 +65,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
     def follow(self, request, pk):
         # /api/friendships/1/follow  follow user 1
         # check if user with id=pk exists
-        to_follow_user = self.get_object();
+        to_follow_user = self.get_object()
 
         # If the follow action happens several times (follow button is clicked several times)
         # Be silent，No need to throw error.

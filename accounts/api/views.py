@@ -23,7 +23,7 @@ from ratelimit.decorators import ratelimit
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    API endpoint that allows users to be viewed or edited.
+    API endpoint that allows users to be viewed.
     """
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializerWithProfile

@@ -40,6 +40,7 @@ class FriendshipService(object):
         ).prefetch_related('from_user')
         return [friendship.from_user for friendship in friendships]
 
+    # TODO: cache followers list
     def get_follower_ids(cls, to_user_id):
         if not GateKeeper.is_switch_on('switch_friendship_to_hbase'):
             friendships = Friendship.objects.filter(to_user_id=to_user_id)
@@ -49,7 +50,7 @@ class FriendshipService(object):
 
     @classmethod
     def get_following_user_id_set(cls, from_user_id):
-        # <TODO> cache in redis set
+        # TODO: cache in redis
         if not GateKeeper.is_switch_on('switch_friendship_to_hbase'):
             friendships = Friendship.objects.filter(from_user_id=from_user_id)
         else:

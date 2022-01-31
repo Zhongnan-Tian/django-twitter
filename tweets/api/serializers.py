@@ -90,8 +90,6 @@ class TweetSerializerForDetail(TweetSerializer):
         fields = (
             'id',
             'user',
-            'comments',
-            'created_at',
             'content',
             'likes',
             'comments',
@@ -99,4 +97,5 @@ class TweetSerializerForDetail(TweetSerializer):
             'comments_count',
             'has_liked',
             'photo_urls',
+            'created_at',
         )
